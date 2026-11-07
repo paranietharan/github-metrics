@@ -1,13 +1,12 @@
-import type { Stats } from "./metrics";
-
 /** One cache per running server instance; no cross-instance persistence. */
-export function createMemoryCache(
-  load: () => Promise<Stats>,
+export function createMemoryCache<T extends { stale?: boolean }>(
+  load: () => Promise<T>,
   now: () => number = Date.now,
+  freshnessMs = 60_000,
 ) {
-  let snapshot: Stats | undefined;
+  let snapshot: T | undefined;
   let refreshedAt = 0;
-  let pending: Promise<Stats> | undefined;
+  let pending: Promise<T> | undefined;
   let retryAt = 0;
   let lastError: unknown;
   const stale = () =>
@@ -15,8 +14,8 @@ export function createMemoryCache(
       ? { ...snapshot, stale: true }
       : undefined;
 
-  return function read(): Promise<Stats> {
-    if (snapshot && now() - refreshedAt < 60_000)
+  return function read(): Promise<T> {
+    if (snapshot && now() - refreshedAt < freshnessMs)
       return Promise.resolve(snapshot);
     if (pending) return pending;
     if (now() < retryAt) {
