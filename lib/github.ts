@@ -3,17 +3,6 @@ import { z } from "zod";
 import { calculate, dateKey, shift, type Stats, type Day } from "./metrics";
 const count = z.number().int().nonnegative();
 const collection = z.object({
-  totalCommitContributions: count,
-  commitContributionsByRepository: z.array(
-    z.object({
-      contributions: z.object({
-        pageInfo: z.object({ hasNextPage: z.boolean() }),
-        nodes: z.array(
-          z.object({ occurredAt: z.string().datetime(), commitCount: count }),
-        ),
-      }),
-    }),
-  ),
   contributionCalendar: z.object({
     weeks: z.array(
       z.object({
@@ -74,7 +63,7 @@ export function checkResponse(response: Response) {
     ),
   );
 }
-const fields = `totalCommitContributions commitContributionsByRepository(maxRepositories:100) { contributions(first:100) { pageInfo { hasNextPage } nodes { occurredAt commitCount } } } contributionCalendar { weeks { contributionDays { date contributionCount } } }`;
+const fields = `contributionCalendar { weeks { contributionDays { date contributionCount } } }`;
 export async function loadGithub(): Promise<Stats> {
   const username = process.env.GITHUB_USERNAME || "paranietharan";
   if (!/^[a-zA-Z0-9-]{1,39}$/.test(username) || !process.env.GITHUB_TOKEN)
@@ -130,22 +119,10 @@ export async function loadGithub(): Promise<Stats> {
   if (!parsed.success) throw new GithubError();
   const u = parsed.data.data.user;
   const map = new Map<string, Day>();
-  const commits = new Map<string, number>();
   for (const period of periods) {
     const result = collection.safeParse(u[period.alias]);
     if (!result.success) throw new GithubError();
     const c = result.data;
-    let sum = 0;
-    for (const repo of c.commitContributionsByRepository) {
-      if (repo.contributions.pageInfo.hasNextPage) throw new GithubError();
-      for (const node of repo.contributions.nodes) {
-        const key = node.occurredAt.slice(0, 10);
-        sum += node.commitCount;
-        commits.set(key, (commits.get(key) || 0) + node.commitCount);
-      }
-    }
-    // Never silently publish partial counts when repository caps truncate history.
-    if (sum !== c.totalCommitContributions) throw new GithubError();
     for (const w of c.contributionCalendar.weeks)
       for (const d of w.contributionDays)
         if (
@@ -158,11 +135,7 @@ export async function loadGithub(): Promise<Stats> {
           });
   }
   const all = [...map.values()].sort((a, b) => a.date.localeCompare(b.date));
-  const commitDays = all.map((d) => ({
-    date: d.date,
-    contributions: commits.get(d.date) || 0,
-  }));
-  const metrics = calculate(commitDays, today);
+  const metrics = calculate(all, today);
   const earliest = `${year - 1}-01-01`;
   return {
     profile: {
@@ -172,9 +145,6 @@ export async function loadGithub(): Promise<Stats> {
       avatar: u.avatarUrl,
       repositories: u.repositories.totalCount,
     },
-    commitDays: commitDays.filter(
-      (d) => d.date >= shift(today, -370) && d.date <= today,
-    ),
     days: all.filter((d) => d.date >= shift(today, -370) && d.date <= today),
     metrics: {
       ...metrics,

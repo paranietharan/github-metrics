@@ -90,10 +90,11 @@ test("malformed GraphQL and GraphQL errors fail closed", async () => {
   }
 });
 
-test("quarter-sized requests normalize contribution calendars and public repository links", async () => {
+test("yearly metrics use calendar contributions instead of commit totals", async () => {
   const original = global.fetch;
   const token = process.env.GITHUB_TOKEN;
   process.env.GITHUB_TOKEN = "test";
+  let expectedYear = 0;
   try {
     global.fetch = async (_url, init) => {
       const query = JSON.parse(String(init?.body)).query as string;
@@ -121,6 +122,8 @@ test("quarter-sized requests normalize contribution calendars and public reposit
       for (const [, alias, from, to] of aliases) {
         assert.ok((Date.parse(to) - Date.parse(from)) / 86400000 < 100);
         const date = from.slice(0, 10);
+        if (date.startsWith(String(new Date().getUTCFullYear())))
+          expectedYear += 9;
         user[alias] = {
           totalCommitContributions: 2,
           commitContributionsByRepository: [
@@ -132,7 +135,7 @@ test("quarter-sized requests normalize contribution calendars and public reposit
             },
           ],
           contributionCalendar: {
-            weeks: [{ contributionDays: [{ date, contributionCount: 2 }] }],
+            weeks: [{ contributionDays: [{ date, contributionCount: 9 }] }],
           },
         };
       }
@@ -140,7 +143,8 @@ test("quarter-sized requests normalize contribution calendars and public reposit
     };
     const stats = await loadGithub();
     assert.equal(stats.profile.login, "test");
-    assert.ok(stats.metrics.year >= 2);
+    assert.ok(expectedYear > 0);
+    assert.equal(stats.metrics.year, expectedYear);
     assert.equal(stats.repositories[0].name, "test/public");
   } finally {
     global.fetch = original;
@@ -159,7 +163,7 @@ test("the default card uses contribution counts and full names", () => {
   assert.ok(svg.includes(">Paranietharan</text>"));
   assert.ok(svg.includes(">Palasuntharam</text>"));
   assert.ok(svg.includes(">454</text>"));
-  assert.ok(svg.includes("Qualifying commit contributions visible"));
+  assert.ok(svg.includes("All contributions visible"));
   assert.ok(!svg.includes("public commits"));
 });
 

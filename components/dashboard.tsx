@@ -69,35 +69,34 @@ export default function Dashboard({
           const key = d.toISOString().slice(0, 7);
           return {
             date: key,
-            contributions: (data?.commitDays || [])
+            contributions: (data?.days || [])
               .filter((x) => x.date.startsWith(key))
               .reduce((s, x) => s + x.contributions, 0),
           };
         })
-      : data?.commitDays?.filter((d) => d.date >= shift(today, -range + 1)) ||
-        [];
+      : data?.days.filter((d) => d.date >= shift(today, -range + 1)) || [];
   const max = Math.max(1, ...chart.map((d) => d.contributions));
   const metrics = [
     {
-      label: "Commits today",
+      label: "Contributions today",
       value: selectedMetrics?.today,
       caption: "GitHub contribution day",
       icon: Activity,
     },
     {
-      label: "Commits this week",
+      label: "Contributions this week",
       value: selectedMetrics?.week,
       caption: "Monday → today",
       icon: CalendarDays,
     },
     {
-      label: "Commits this year",
+      label: "Contributions this year",
       value: selectedMetrics?.year,
       caption: "January 1 → today",
       icon: Code2,
     },
     {
-      label: "Commit streak",
+      label: "Contribution streak",
       value: selectedMetrics?.streak,
       caption: "Consecutive active days",
       icon: Flame,
@@ -189,7 +188,7 @@ export default function Dashboard({
           </div>
         )}
         <div className="metric-controls">
-          <span>Qualifying commit contributions · GitHub dates (UTC)</span>
+          <span>All contribution types · GitHub dates (UTC)</span>
         </div>
         <section className="metrics" aria-label="Contribution statistics">
           {metrics.map(({ label, value, caption, icon: Icon }) => (
@@ -293,8 +292,8 @@ export default function Dashboard({
           <section className="panel activity">
             <div className="panel-top">
               <div>
-                <h2>Commit activity</h2>
-                <p>Qualifying commit contributions · UTC dates</p>
+                <h2>Contribution activity</h2>
+                <p>All contribution types · UTC dates</p>
               </div>
               <div className="segmented" aria-label="Activity period">
                 {[7, 30, 365].map((n) => (
@@ -311,7 +310,7 @@ export default function Dashboard({
             <div
               className="chart"
               role="img"
-              aria-label={`Commit activity for the last ${range} days; ${chart.reduce((s, d) => s + d.contributions, 0)} contributions`}
+              aria-label={`Contribution activity for the last ${range} days; ${chart.reduce((s, d) => s + d.contributions, 0)} contributions`}
             >
               <div className="chart-guide">
                 <span>{max}</span>
@@ -394,7 +393,7 @@ export default function Dashboard({
             onClick={async () => {
               try {
                 await navigator.clipboard.writeText(
-                  `![GitHub Commit Statistics](${location.origin}/api/card)`,
+                  `![GitHub Contribution Statistics](${location.origin}/api/card)`,
                 );
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2500);
@@ -410,16 +409,17 @@ export default function Dashboard({
         <details className="definitions">
           <summary>How these numbers are calculated</summary>
           <p>
-            Primary statistics sum GitHub’s qualifying commit contributions. The
-            heatmap uses daily contribution-calendar counts, including commits,
-            issues, pull requests, reviews, and any restricted counts returned
-            by the API. Totals may differ from your signed-in GitHub profile
-            because token visibility differs. Today, Monday–today, and January
-            1–today use UTC contribution dates. A commit streak continues from
-            yesterday when today has no commits. History starts January 1 of the
-            previous year; a + indicates a lower bound. The display timezone
-            only controls the updated timestamp. Private repository details are
-            never returned. GitHub may take time to register activity.
+            Primary statistics sum GitHub’s daily contribution-calendar counts.
+            The heatmap uses daily contribution-calendar counts, including
+            commits, issues, pull requests, reviews, and any restricted counts
+            returned by the API. Totals may differ from your signed-in GitHub
+            profile because token visibility differs. Today, Monday–today, and
+            January 1–today use UTC contribution dates. A contribution streak
+            continues from yesterday when today has no contributions. History
+            starts January 1 of the previous year; a + indicates a lower bound.
+            The display timezone only controls the updated timestamp. Private
+            repository details are never returned. GitHub may take time to
+            register activity.
           </p>
         </details>
         <footer>

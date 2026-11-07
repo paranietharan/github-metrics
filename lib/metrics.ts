@@ -8,7 +8,6 @@ export type Stats = {
     repositories: number;
   };
   days: Day[];
-  commitDays?: Day[];
   metrics: {
     today: number;
     week: number;
