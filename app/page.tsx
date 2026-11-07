@@ -1,3 +1,4 @@
+import { statsRefreshSeconds } from "@/lib/refresh";
 import { Suspense } from "react";
 import Dashboard from "@/components/dashboard";
 export default function Home() {
@@ -11,6 +12,7 @@ export default function Home() {
       }
     >
       <Dashboard
+        refreshSeconds={statsRefreshSeconds()}
         username={process.env.GITHUB_USERNAME || "paranietharan"}
         source={source?.startsWith("https://github.com/") ? source : undefined}
       />

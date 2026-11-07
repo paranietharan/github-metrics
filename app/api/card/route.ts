@@ -1,3 +1,4 @@
+import { cardRefreshSeconds, responseCacheControl } from "@/lib/refresh";
 import { getStats } from "@/lib/cache";
 import { avatarData } from "@/lib/avatar";
 import { card, svgHeaders } from "@/lib/svg";
@@ -25,7 +26,12 @@ export async function GET(request: Request) {
         hideAvatar: hidden,
         avatar: hidden ? undefined : await avatarData(stats.profile.avatar),
       }),
-      { headers: svgHeaders },
+      {
+        headers: {
+          ...svgHeaders,
+          "Cache-Control": responseCacheControl(cardRefreshSeconds()),
+        },
+      },
     );
   } catch {
     return new Response(

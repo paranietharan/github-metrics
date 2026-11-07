@@ -38,16 +38,18 @@ const fetcher = async (url: string): Promise<Stats> => {
 export default function Dashboard({
   username,
   source,
+  refreshSeconds,
 }: {
   username: string;
   source?: string;
+  refreshSeconds: number;
 }) {
   const { data, error, isLoading, mutate } = useSWR<Stats>(
     "/api/stats",
     fetcher,
     {
-      refreshInterval: 15000,
-      dedupingInterval: 14000,
+      refreshInterval: refreshSeconds * 1000,
+      dedupingInterval: Math.max(1000, refreshSeconds * 1000 - 1000),
       revalidateOnFocus: true,
       refreshWhenHidden: false,
       refreshWhenOffline: false,
@@ -169,7 +171,8 @@ export default function Dashboard({
               ? `${data.stale ? "Cached" : "Updated"} ${new Intl.DateTimeFormat("en", { timeZone: data.timezone, hour: "2-digit", minute: "2-digit" }).format(new Date(data.updatedAt))}`
               : "Waiting for GitHub"}
             <small>
-              {data?.timezone || "Asia/Colombo"} · refreshes every 15s
+              {data?.timezone || "Asia/Colombo"} · refreshes every{" "}
+              {refreshSeconds}s
             </small>
           </div>
         </section>

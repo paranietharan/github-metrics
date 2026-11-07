@@ -1,3 +1,4 @@
+import { responseCacheControl } from "@/lib/refresh";
 import { getLanguages } from "@/lib/language-github";
 import { languageRefreshSeconds } from "@/lib/language";
 import { languageCard } from "@/lib/language-svg";
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
       {
         headers: {
           ...svgHeaders,
-          "Cache-Control": `public, max-age=${seconds}, s-maxage=${seconds}, stale-while-revalidate=300`,
+          "Cache-Control": responseCacheControl(seconds),
         },
       },
     );

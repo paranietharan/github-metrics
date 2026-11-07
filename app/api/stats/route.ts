@@ -1,3 +1,4 @@
+import { statsRefreshSeconds, responseCacheControl } from "@/lib/refresh";
 import { getStats } from "@/lib/cache";
 import { GithubError } from "@/lib/github";
 
@@ -5,8 +6,7 @@ export async function GET() {
   try {
     return Response.json(await getStats(), {
       headers: {
-        "Cache-Control":
-          "public, max-age=0, s-maxage=15, stale-while-revalidate=60",
+        "Cache-Control": responseCacheControl(statsRefreshSeconds(), false),
       },
     });
   } catch (e) {

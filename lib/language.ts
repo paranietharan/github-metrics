@@ -1,3 +1,4 @@
+import { refreshSeconds } from "./refresh";
 export type Language = {
   name: string;
   color: string;
@@ -13,10 +14,7 @@ export type LanguageStats = {
 export function languageRefreshSeconds(
   value = process.env.LANGUAGE_REFRESH_SECONDS,
 ): number {
-  const seconds = Number(value);
-  return Number.isInteger(seconds) && seconds >= 60 && seconds <= 86400
-    ? seconds
-    : 900;
+  return refreshSeconds(value, 900, 60);
 }
 export function aggregateLanguages(
   edges: { size: number; node: { name: string; color: string | null } }[],
