@@ -12,8 +12,6 @@ export type Stats = {
     today: number;
     week: number;
     year: number;
-    streak: number;
-    streakBounded?: boolean;
   };
   repositories: { name: string; url: string }[];
   updatedAt: string;
@@ -41,16 +39,9 @@ export function calculate(days: Day[], today: string) {
     days
       .filter((d) => d.date >= from && d.date <= today)
       .reduce((s, d) => s + d.contributions, 0);
-  let cursor = (map.get(today) ?? 0) > 0 ? today : shift(today, -1);
-  let streak = 0;
-  while ((map.get(cursor) ?? 0) > 0) {
-    streak++;
-    cursor = shift(cursor, -1);
-  }
   return {
     today: map.get(today) ?? 0,
     week: sum(monday),
     year: sum(today.slice(0, 4) + "-01-01"),
-    streak,
   };
 }

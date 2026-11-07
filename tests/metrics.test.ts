@@ -9,15 +9,14 @@ const days = [
   { date: "2027-01-01", contributions: 3 },
   { date: "2027-01-02", contributions: 2 },
 ];
-test("daily, Monday weekly, yearly and active yesterday streak", () =>
+test("daily, Monday weekly and yearly contribution aggregation", () =>
   assert.deepEqual(calculate(days, "2027-01-02"), {
     today: 2,
     week: 10,
     year: 5,
-    streak: 3,
   }));
 test("empty activity and Monday boundary", () => {
-  assert.equal(calculate([], "2027-01-04").streak, 0);
+  assert.deepEqual(calculate([], "2027-01-04"), { today: 0, week: 0, year: 0 });
   assert.equal(calculate(days, "2027-01-04").week, 0);
 });
 test("timezone and leap boundaries", () => {
@@ -38,7 +37,7 @@ const stats: Stats = {
     repositories: 0,
   },
   days: [],
-  metrics: { today: 0, week: 0, year: 0, streak: 0 },
+  metrics: { today: 0, week: 0, year: 0 },
   repositories: [],
   updatedAt: "2026-11-07T00:00:00Z",
   timezone: "UTC",
@@ -157,7 +156,7 @@ test("the default card uses contribution counts and full names", () => {
   const different = {
     ...stats,
     profile: { ...stats.profile, name: "Paranietharan Palasuntharam" },
-    metrics: { today: 49, week: 73, year: 454, streak: 3 },
+    metrics: { today: 49, week: 73, year: 454 },
   };
   const svg = card(different);
   assert.ok(svg.includes(">Paranietharan</text>"));

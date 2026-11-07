@@ -12,7 +12,7 @@ const snapshot: Stats = {
     repositories: 0,
   },
   days: [],
-  metrics: { today: 0, week: 0, year: 0, streak: 0 },
+  metrics: { today: 0, week: 0, year: 0 },
   repositories: [],
   updatedAt: "2026-11-07T00:00:00Z",
   timezone: "Asia/Colombo",

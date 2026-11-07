@@ -136,7 +136,6 @@ export async function loadGithub(): Promise<Stats> {
   }
   const all = [...map.values()].sort((a, b) => a.date.localeCompare(b.date));
   const metrics = calculate(all, today);
-  const earliest = `${year - 1}-01-01`;
   return {
     profile: {
       login: u.login,
@@ -146,14 +145,7 @@ export async function loadGithub(): Promise<Stats> {
       repositories: u.repositories.totalCount,
     },
     days: all.filter((d) => d.date >= shift(today, -370) && d.date <= today),
-    metrics: {
-      ...metrics,
-      streakBounded:
-        shift(
-          today,
-          -(metrics.today > 0 ? metrics.streak - 1 : metrics.streak),
-        ) === earliest,
-    },
+    metrics,
     repositories: u.repositories.nodes.map((r) => ({
       name: r.nameWithOwner,
       url: r.url,

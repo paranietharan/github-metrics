@@ -191,6 +191,12 @@ test("language endpoint rejects arbitrary accounts and sets configurable SVG hea
         },
       });
     const response = await GET(new Request("http://localhost/api/language"));
+    const json = await GET(
+      new Request("http://localhost/api/language?format=json"),
+    );
+    assert.equal(json.status, 200);
+    assert.ok(json.headers.get("Content-Type")?.includes("application/json"));
+    assert.deepEqual((await json.json()).languages, []);
     assert.equal(response.status, 200);
     assert.equal(
       response.headers.get("Content-Type"),

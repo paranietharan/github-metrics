@@ -1,3 +1,4 @@
+import { languageRefreshSeconds } from "@/lib/language";
 import { statsRefreshSeconds } from "@/lib/refresh";
 import { Suspense } from "react";
 import Dashboard from "@/components/dashboard";
@@ -12,6 +13,9 @@ export default function Home() {
       }
     >
       <Dashboard
+        email="contact@paranietharan.com"
+        linkedIn="https://www.linkedin.com/in/paranietharan-palasuntharam"
+        languageRefreshSeconds={languageRefreshSeconds()}
         refreshSeconds={statsRefreshSeconds()}
         username={process.env.GITHUB_USERNAME || "paranietharan"}
         source={source?.startsWith("https://github.com/") ? source : undefined}

@@ -8,14 +8,15 @@ import {
   Sun,
   Moon,
   Activity,
-  Flame,
   CalendarDays,
   Code2,
   Copy,
   Check,
   RefreshCw,
-  CircleHelp,
+  Mail,
+  ExternalLink,
 } from "lucide-react";
+import LanguagePanel from "./language-panel";
 import { shift, type Stats } from "@/lib/metrics";
 function Github({ size = 20 }: { size?: number }) {
   return (
@@ -39,10 +40,16 @@ export default function Dashboard({
   username,
   source,
   refreshSeconds,
+  languageRefreshSeconds,
+  email,
+  linkedIn,
 }: {
   username: string;
   source?: string;
   refreshSeconds: number;
+  languageRefreshSeconds: number;
+  email?: string;
+  linkedIn?: string;
 }) {
   const { data, error, isLoading, mutate } = useSWR<Stats>(
     "/api/stats",
@@ -60,9 +67,11 @@ export default function Dashboard({
   const [light, setLight] = useState(false);
   const [range, setRange] = useState(30);
   const [copied, setCopied] = useState(false);
+  const [emailCopy, setEmailCopy] = useState<"idle" | "copied" | "failed">(
+    "idle",
+  );
   const today =
     data?.updatedAt.slice(0, 10) || new Date().toISOString().slice(0, 10);
-  const days = data?.days.filter((d) => d.date >= shift(today, -364)) || [];
   const chart =
     range === 365
       ? Array.from({ length: 12 }, (_, i) => {
@@ -97,12 +106,6 @@ export default function Dashboard({
       caption: "January 1 → today",
       icon: Code2,
     },
-    {
-      label: "Contribution streak",
-      value: selectedMetrics?.streak,
-      caption: "Consecutive active days",
-      icon: Flame,
-    },
   ];
   return (
     <div className={light ? "app light" : "app"}>
@@ -130,255 +133,194 @@ export default function Dashboard({
         </nav>
       </header>
       <main>
-        <div className="eyebrow">
-          <span className="status-dot" /> THE DEVELOPER BEHIND THE CONTRIBUTIONS
-        </div>
-        <section className="profile">
-          <div className="identity">
-            {data ? (
-              <Image
-                unoptimized
-                className="avatar"
-                src={data.profile.avatar}
-                alt={`${data.profile.name}'s avatar`}
-                width="64"
-                height="64"
-              />
-            ) : (
-              <div className="avatar placeholder">
-                <Github size={29} />
-              </div>
-            )}
-            <div>
-              <div className="name-line">
-                <h1>{data?.profile.name || username}</h1>
-                <a
-                  className="profile-link"
-                  href={`https://github.com/${data?.profile.login || username}`}
-                  aria-label="Open GitHub profile"
-                >
-                  <ArrowUpRight size={19} />
-                </a>
-              </div>
-              <a className="handle" href={`https://github.com/${username}`}>
-                @{data?.profile.login || username}
-              </a>
-            </div>
-          </div>
-          <div className="updated">
-            <span className="status-dot" />
-            {data
-              ? `${data.stale ? "Cached" : "Updated"} ${new Intl.DateTimeFormat("en", { timeZone: data.timezone, hour: "2-digit", minute: "2-digit" }).format(new Date(data.updatedAt))}`
-              : "Waiting for GitHub"}
-            <small>
-              {data?.timezone || "Asia/Colombo"} · refreshes every{" "}
-              {refreshSeconds}s
-            </small>
-          </div>
-        </section>
-        <p className="bio">
-          {data?.profile.bio ||
-            "A closer look at the work, one contribution at a time."}
-        </p>
-        {error && (
-          <div className="notice" role="status">
-            {data
-              ? "Refresh delayed. Showing the last successful snapshot."
-              : "GitHub statistics are unavailable. Configure the server environment to connect your account."}
-            <button onClick={() => mutate()}>
-              <RefreshCw size={13} /> Retry
-            </button>
-          </div>
-        )}
-        <div className="metric-controls">
-          <span>All contribution types · GitHub dates (UTC)</span>
-        </div>
-        <section className="metrics" aria-label="Contribution statistics">
-          {metrics.map(({ label, value, caption, icon: Icon }) => (
-            <article className="metric" key={label}>
-              <div className="metric-label">
-                {label}
-                <Icon size={16} />
-              </div>
-              <div className={`metric-value ${isLoading ? "skeleton" : ""}`}>
-                {value?.toLocaleString() ?? "—"}
-                {label.includes("streak") && selectedMetrics?.streakBounded
-                  ? "+"
-                  : ""}
-                {label.includes("streak") && value !== undefined && (
-                  <small>days</small>
-                )}
-              </div>
-              <p>{caption}</p>
-            </article>
-          ))}
-        </section>
-        <div className="section-heading">
-          <div>
-            <h2>Contribution overview</h2>
-            <p>Small steps. Consistent progress.</p>
-          </div>
-          <span className="pill">Last 12 months</span>
-        </div>
-        <section className="panel heatmap-panel">
-          <div className="panel-top">
-            <span>
-              <strong>
-                {data
-                  ? days
-                      .reduce((s, d) => s + d.contributions, 0)
-                      .toLocaleString()
-                  : "—"}
-              </strong>{" "}
-              contributions in the last year
-            </span>
-            <span className="muted tiny">All contribution types</span>
-          </div>
-          <div className="heatmap-scroll">
-            <div className="months">
-              {Array.from({ length: 12 }, (_, i) => {
-                const d = new Date(today + "T12:00:00Z");
-                d.setUTCMonth(d.getUTCMonth() - 11 + i, 1);
-                return (
-                  <span key={i}>
-                    {d.toLocaleDateString("en", {
-                      month: "short",
-                      timeZone: "UTC",
-                    })}
-                  </span>
-                );
-              })}
-            </div>
-            <div className="heatmap" aria-label="Daily contribution calendar">
-              {Array.from(
-                {
-                  length: new Date(
-                    (days[0]?.date || today) + "T12:00:00Z",
-                  ).getUTCDay(),
-                },
-                (_, i) => (
-                  <span key={`blank${i}`} />
-                ),
-              )}
-              {days.map((d) => (
-                <button
-                  key={d.date}
-                  className={`cell level-${d.contributions === 0 ? 0 : d.contributions < 3 ? 1 : d.contributions < 7 ? 2 : d.contributions < 12 ? 3 : 4}`}
-                  title={`${d.date}: ${d.contributions} contributions`}
-                  aria-label={`${d.date}: ${d.contributions} contributions`}
-                />
-              ))}
-              {!data &&
-                Array.from({ length: 365 }, (_, i) => (
-                  <span
-                    className={`cell ${isLoading ? "skeleton" : ""}`}
-                    key={i}
-                  />
-                ))}
-            </div>
-          </div>
-          <div className="heatmap-footer">
-            <span>
-              <CircleHelp size={13} /> Contributions include commits, issues,
-              pull requests & reviews.
-            </span>
-            <div className="legend">
-              Less{" "}
-              {[0, 1, 2, 3, 4].map((i) => (
-                <i key={i} className={`cell level-${i}`} />
-              ))}{" "}
-              More
-            </div>
-          </div>
-        </section>
-        <div className="lower-grid">
-          <section className="panel activity">
-            <div className="panel-top">
-              <div>
-                <h2>Contribution activity</h2>
-                <p>All contribution types · UTC dates</p>
-              </div>
-              <div className="segmented" aria-label="Activity period">
-                {[7, 30, 365].map((n) => (
-                  <button
-                    key={n}
-                    aria-pressed={range === n}
-                    onClick={() => setRange(n)}
-                  >
-                    {n === 365 ? "12m" : `${n}d`}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div
-              className="chart"
-              role="img"
-              aria-label={`Contribution activity for the last ${range} days; ${chart.reduce((s, d) => s + d.contributions, 0)} contributions`}
-            >
-              <div className="chart-guide">
-                <span>{max}</span>
-                <span>{Math.round(max / 2)}</span>
-                <span>0</span>
-              </div>
-              <div className="bars">
-                {chart.map((d) => (
-                  <div key={d.date} className="bar-slot">
-                    <div
-                      className="bar"
-                      style={{
-                        height: `${Math.max(1, (d.contributions / max) * 100)}%`,
-                      }}
-                      title={`${d.date}: ${d.contributions} contributions`}
+        <div className="dashboard-layout">
+          <div className="main-column">
+            <div className="profile-hero">
+              <section className="profile">
+                <div className="identity">
+                  {data ? (
+                    <Image
+                      unoptimized
+                      className="avatar"
+                      src={data.profile.avatar}
+                      alt={`${data.profile.name}'s avatar`}
+                      width="112"
+                      height="112"
                     />
+                  ) : (
+                    <div className="avatar placeholder">
+                      <Github size={29} />
+                    </div>
+                  )}
+                  <div>
+                    <div className="name-line">
+                      <h1>{data?.profile.name || username}</h1>
+                      <a
+                        className="profile-link"
+                        href={`https://github.com/${data?.profile.login || username}`}
+                        aria-label="Open GitHub profile"
+                      >
+                        <ArrowUpRight size={19} />
+                      </a>
+                    </div>
+                    <a
+                      className="handle"
+                      href={`https://github.com/${username}`}
+                    >
+                      @{data?.profile.login || username}
+                    </a>
                   </div>
-                ))}
-                {!data && (
-                  <span className="chart-empty">
-                    {isLoading
-                      ? "Loading activity…"
-                      : "Connect GitHub to see your activity"}
-                  </span>
+                </div>
+              </section>
+              <p className="bio">
+                {data?.profile.bio ||
+                  "A closer look at the work, one contribution at a time."}
+              </p>
+            </div>
+            {error && (
+              <div className="notice" role="status">
+                {data
+                  ? "Refresh delayed. Showing the last successful snapshot."
+                  : "GitHub statistics are unavailable. Configure the server environment to connect your account."}
+                <button onClick={() => mutate()}>
+                  <RefreshCw size={13} /> Retry
+                </button>
+              </div>
+            )}
+            <div className="metric-controls">
+              <span>All contribution types · GitHub dates (UTC)</span>
+            </div>
+            <section className="metrics" aria-label="Contribution statistics">
+              {metrics.map(({ label, value, caption, icon: Icon }) => (
+                <article className="metric" key={label}>
+                  <div className="metric-label">
+                    {label}
+                    <Icon size={16} />
+                  </div>
+                  <div
+                    className={`metric-value ${isLoading ? "skeleton" : ""}`}
+                  >
+                    {value?.toLocaleString() ?? "—"}
+                  </div>
+                  <p>{caption}</p>
+                </article>
+              ))}
+            </section>
+            <div className="lower-grid">
+              <section className="panel activity">
+                <div className="panel-top">
+                  <div>
+                    <h2>Contribution activity</h2>
+                    <p>All contribution types · UTC dates</p>
+                  </div>
+                  <div className="segmented" aria-label="Activity period">
+                    {[7, 30, 365].map((n) => (
+                      <button
+                        key={n}
+                        aria-pressed={range === n}
+                        onClick={() => setRange(n)}
+                      >
+                        {n === 365 ? "12m" : `${n}d`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div
+                  className="chart"
+                  role="img"
+                  aria-label={`Contribution activity for the last ${range} days; ${chart.reduce((s, d) => s + d.contributions, 0)} contributions`}
+                >
+                  <div className="chart-guide">
+                    <span>{max}</span>
+                    <span>{Math.round(max / 2)}</span>
+                    <span>0</span>
+                  </div>
+                  <div className="bars">
+                    {chart.map((d) => (
+                      <div key={d.date} className="bar-slot">
+                        <div
+                          className="bar"
+                          style={{
+                            height: `${Math.max(1, (d.contributions / max) * 100)}%`,
+                          }}
+                          title={`${d.date}: ${d.contributions} contributions`}
+                        />
+                      </div>
+                    ))}
+                    {!data && (
+                      <span className="chart-empty">
+                        {isLoading
+                          ? "Loading activity…"
+                          : "Connect GitHub to see your activity"}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="chart-labels">
+                  <span>{chart[0]?.date || "Start of period"}</span>
+                  <span>{chart.at(-1)?.date || "Today"}</span>
+                </div>
+              </section>
+            </div>
+          </div>
+          <aside className="sidebar" aria-label="Profile links and languages">
+            <section className="contact-panel" aria-label="Contact links">
+              <div className="contact-links">
+                {email && (
+                  <button
+                    type="button"
+                    title={email}
+                    aria-label={
+                      emailCopy === "copied"
+                        ? "Email address copied"
+                        : "Copy email address"
+                    }
+                    onClick={async () => {
+                      try {
+                        await navigator.clipboard.writeText(email);
+                        setEmailCopy("copied");
+                        setTimeout(() => setEmailCopy("idle"), 2500);
+                      } catch {
+                        setEmailCopy("failed");
+                      }
+                    }}
+                  >
+                    {emailCopy === "copied" ? (
+                      <Check size={15} />
+                    ) : (
+                      <Mail size={15} />
+                    )}
+                    <span>
+                      {emailCopy === "copied" ? "Copied!" : "Copy email"}
+                    </span>
+                  </button>
+                )}
+                {linkedIn && (
+                  <a href={linkedIn} target="_blank" rel="noreferrer">
+                    <ExternalLink size={15} />
+                    <span>LinkedIn</span>
+                  </a>
                 )}
               </div>
-            </div>
-            <div className="chart-labels">
-              <span>{chart[0]?.date || "Start of period"}</span>
-              <span>{chart.at(-1)?.date || "Today"}</span>
-            </div>
-          </section>
-          <section className="panel repositories">
-            <div className="panel-top">
-              <div>
-                <h2>Where the work happens</h2>
-                <p>Recently updated public repositories</p>
-              </div>
-              <Code2 size={17} />
-            </div>
-            {data?.repositories.length ? (
-              data.repositories.map((r, i) => (
-                <a className="repo-row" key={r.name} href={r.url}>
-                  <span className="repo-number">0{i + 1}</span>
-                  <span>
-                    {r.name.split("/").at(-1)}
-                    <small>{r.name.split("/")[0]}</small>
-                  </span>
-                  <ArrowUpRight size={14} />
-                </a>
-              ))
-            ) : (
-              <p className="empty">
-                {isLoading
-                  ? "Loading repositories…"
-                  : "No public repositories available."}
-              </p>
-            )}
-            <div className="repo-footer">
-              <Github size={14} />
-              <span>
-                {data?.profile.repositories ?? "—"} public repositories
+              <span className="copy-status" role="status">
+                {emailCopy === "copied"
+                  ? "Email address copied to clipboard."
+                  : ""}
               </span>
-            </div>
-          </section>
+              {emailCopy === "failed" && (
+                <p className="copy-fallback" role="status">
+                  Copy unavailable. Select your email below:
+                  <input
+                    readOnly
+                    aria-label="Email address"
+                    value={email}
+                    onFocus={(event) => event.currentTarget.select()}
+                  />
+                </p>
+              )}
+            </section>
+            <LanguagePanel refreshSeconds={languageRefreshSeconds} />
+          </aside>
         </div>
         <section className="embed panel">
           <div className="embed-icon">
@@ -412,27 +354,29 @@ export default function Dashboard({
         <details className="definitions">
           <summary>How these numbers are calculated</summary>
           <p>
-            Primary statistics sum GitHub’s daily contribution-calendar counts.
-            The heatmap uses daily contribution-calendar counts, including
-            commits, issues, pull requests, reviews, and any restricted counts
-            returned by the API. Totals may differ from your signed-in GitHub
-            profile because token visibility differs. Today, Monday–today, and
-            January 1–today use UTC contribution dates. A contribution streak
-            continues from yesterday when today has no contributions. History
-            starts January 1 of the previous year; a + indicates a lower bound.
-            The display timezone only controls the updated timestamp. Private
+            Statistics sum GitHub’s daily contribution-calendar counts,
+            including commits, issues, pull requests, reviews, and any
+            restricted counts returned by the API. Totals may differ from your
+            signed-in GitHub profile because token visibility differs. Today,
+            Monday–today, and January 1–today use UTC contribution dates. The
+            display timezone only controls the updated timestamp. Private
             repository details are never returned. GitHub may take time to
             register activity.
           </p>
         </details>
-        <footer>
-          <span>
-            <Github size={14} /> github-metrics{" "}
-            <span className="muted">/ Built on consistency.</span>
-          </span>
-          <span>GitHub contribution data · GitHub contribution days (UTC)</span>
-        </footer>
       </main>
+      <footer className="site-footer">
+        <div>
+          <span>
+            <Github size={15} /> github-metrics
+          </span>
+          <p>
+            © {new Date().getUTCFullYear()} {data?.profile.name || username}.
+            All rights reserved.
+          </p>
+          <span>Built on consistency.</span>
+        </div>
+      </footer>
     </div>
   );
 }
